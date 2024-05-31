@@ -66,7 +66,7 @@ cases <- dat %>%
   filter(county == county_name) %>%
   select(date, cases_new.7avg) %>%
   rename(cases = cases_new.7avg) %>%
-  filter(date >= "2022-10-01" & date <= "2023-01-15") %>%
+  #filter(date >= "2022-10-01" & date <= "2023-01-15") %>%
   arrange(date)
 
 # concentration data
@@ -76,7 +76,7 @@ conc_data <- dat %>%
   mutate(weekday = weekdays(date)
   ) %>%
   rename(concentration = sars2.7avg)%>%
-  filter(date >= "2022-10-01" & date <= "2023-01-15") %>%
+  #filter(date >= "2022-10-01" & date <= "2023-01-15") %>%
   filter(!is.na(concentration)) %>%
   arrange(date)
 
@@ -85,7 +85,7 @@ flow <- dat %>%
   filter(county == county_name) %>%
   select(date, mean_flow_w) %>%
   rename(flow = mean_flow_w)%>%
-  filter(date >= "2022-10-01" & date <= "2023-01-15") %>%
+  #filter(date >= "2022-10-01" & date <= "2023-01-15") %>%
   arrange(date)
 
 # combine into episewer format
