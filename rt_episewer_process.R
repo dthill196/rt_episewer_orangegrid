@@ -26,8 +26,8 @@ library(ggplot2)
 library(Matrix)
 library(dplyr)
 
-cmdstanr::check_cmdstan_toolchain()
-cmdstanr::install_cmdstan()
+#cmdstanr::check_cmdstan_toolchain()
+#cmdstanr::install_cmdstan()
 
 # Get command line argument
 args <- commandArgs(trailingOnly = TRUE)
@@ -43,7 +43,10 @@ county_name <- args[1]
 # county data
 dat <- readRDS("Rt_data_county.rds")
 dat <- dat %>% mutate(county = ifelse(county == 'St Lawrence', 'St_Lawrence', county),
-                      county = ifelse(county == 'New York', 'New_York', county))
+                      county = ifelse(county == 'New York', 'New_York', county)) %>%
+  # remove allegany, and hamilton
+  filter(county != "Allegany") %>%
+  filter(county != "Hamilton")
 
 
 # fill missing flow data with the mean of the county
@@ -98,6 +101,15 @@ load_per_case  <- suggest_load_per_case(
   cases,
   flow,
   ascertainment_prop = 1
+)
+
+# assumptions object
+# combine assumptions
+ww_assumptions <- sewer_assumptions(
+  generation_dist = generation_dist,
+  incubation_dist = incubation_dist,
+  shedding_dist = shedding_dist,
+  load_per_case = load_per_case
 )
 
 # 4 make the estimate
