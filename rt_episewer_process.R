@@ -29,6 +29,9 @@ library(dplyr)
 #cmdstanr::check_cmdstan_toolchain()
 #cmdstanr::install_cmdstan()
 
+# set path
+set_cmdstan_path(path = "/home/dthill/.cmdstan/cmdstan-2.34.1")
+
 # Get command line argument
 args <- commandArgs(trailingOnly = TRUE)
 
