@@ -103,7 +103,9 @@ shedding_dist <- get_discrete_gamma(gamma_shape = 0.929639, gamma_scale = 7.2413
 load_per_case  <- suggest_load_per_case(
   conc_data,
   cases,
-  flow,
+  #flow,
+  # assume constant flow for our analysis
+  flow_constant = mean(flow$flow),
   ascertainment_prop = 1
 )
 
@@ -139,6 +141,9 @@ ww_result <- EpiSewer(
   # # optional variation in shedding by 10%
   shedding = model_shedding(
     load_variation = load_variation_estimate(cv_prior_mu = 0.1, cv_prior_sigma = 0.025)
+  ),
+  sewage = model_sewage(
+    flows = flows_assume(flow_constant = mean(flow$flow, na.rm = TRUE))
   )
   
 )
