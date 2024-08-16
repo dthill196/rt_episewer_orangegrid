@@ -44,49 +44,37 @@ if (length(args) == 0) {
 # Extract county name
 county_name <- args[1]
 
-# county data
-dat <- readRDS("Rt_data_county.rds")
+# sewer data
+dat <- readRDS("rt_sewer_data_complete.rds")
 dat <- dat %>% mutate(county = ifelse(county == 'St Lawrence', 'St_Lawrence', county),
                       county = ifelse(county == 'New York', 'New_York', county)) %>%
   # remove allegany, and hamilton
   filter(county != "Allegany") %>%
   filter(county != "Hamilton")
 
-
-# fill missing flow data with the mean of the county
-dat <- dat %>%
-  group_by(county) %>%
-  mutate(flow_mean_for_missing = mean(mean_flow_w, na.rm = TRUE)
-  ) %>%
-  mutate(mean_flow_w = ifelse(is.na(mean_flow_w), flow_mean_for_missing, mean_flow_w)
-  ) %>%
-  ungroup()
-
 # data for our test county -> use winter surge: october to january 15, 2023
 cases <- dat %>%
   filter(county == county_name) %>%
   select(date, cases_new.7avg) %>%
   rename(cases = cases_new.7avg) %>%
-  #filter(date >= "2022-10-01" & date <= "2023-01-15") %>%
   arrange(date)
 
 # concentration data
 conc_data <- dat %>%
   filter(county == county_name) %>%
-  select(date, sars2.7avg) %>%
+  select(date, sars2) %>%
   mutate(weekday = weekdays(date)
   ) %>%
-  rename(concentration = sars2.7avg)%>%
+  rename(concentration = sars2)%>%
   #filter(date >= "2022-10-01" & date <= "2023-01-15") %>%
   filter(!is.na(concentration)) %>%
   arrange(date)
 
 # flow data
 flow <- dat %>%
-  filter(county == county_name) %>%
-  select(date, mean_flow_w) %>%
-  rename(flow = mean_flow_w)%>%
-  #filter(date >= "2022-10-01" & date <= "2023-01-15") %>%
+  filter(sw_id %in% conc_data$sw_id) %>%
+  select(date, flow_rate_ml) %>%
+  rename(flow = flow_rate_ml)%>%
   arrange(date)
 
 # combine into episewer format
@@ -103,9 +91,7 @@ shedding_dist <- get_discrete_gamma(gamma_shape = 0.929639, gamma_scale = 7.2413
 load_per_case  <- suggest_load_per_case(
   conc_data,
   cases,
-  #flow,
-  # assume constant flow for our analysis
-  flow_constant = mean(flow$flow),
+  flow,
   ascertainment_prop = 1
 )
 
@@ -117,6 +103,7 @@ ww_assumptions <- sewer_assumptions(
   shedding_dist = shedding_dist,
   load_per_case = load_per_case
 )
+
 
 # 4 make the estimate
 
@@ -132,20 +119,7 @@ options(mc.cores = cores_use) # allow stan to use 4 cores, i.e. one for each cha
 ww_result <- EpiSewer(
   data = ww_data,
   assumptions = ww_assumptions,
-  fit_opts = set_fit_opts(sampler = sampler_stan_mcmc(iter_warmup = iter_warmup_n, iter_sampling = iter_sampling_n, chains = chains))
-  ,
-  # add overdispersion parameter for infections. better fit for covid data suggested by Adrian
-  infections = model_infections(
-    infection_noise = infection_noise_estimate(overdispersion = TRUE, overdispersion_prior_mu = 0.05, overdispersion_fixed = TRUE)
-  ),
-  # # optional variation in shedding by 10%
-  shedding = model_shedding(
-    load_variation = load_variation_estimate(cv_prior_mu = 0.1, cv_prior_sigma = 0.025)
-  ),
-  sewage = model_sewage(
-    flows = flows_assume(flow_constant = mean(flow$flow, na.rm = TRUE))
-  )
-  
+  fit_opts = set_fit_opts(sampler = sampler_stan_mcmc(iter_warmup = iter_warmup_n, iter_sampling = iter_warmup_n, chains = 8))
 )
 
 # extract to df
